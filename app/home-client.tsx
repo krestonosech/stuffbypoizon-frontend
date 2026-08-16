@@ -7,8 +7,7 @@ import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 
 const slides = [
-	{ src: "/nike.jpg", label: "NIKE", href: "/catalog?brand=Nike" },
-	{ src: "/yeezy.jpg", label: "YEEZY", href: "/catalog?brand=Yeezy" },
+	{ src: "/yeezy.jpg", label: "ОБУВЬ", href: "/catalog?brand=Yeezy" },
 	{ src: "/uggi.jpg", label: "УГГИ", href: "/catalog?brand=UGG" },
 	{
 		src: "/hat.jpg",
@@ -39,10 +38,14 @@ async function getProducts() {
 export default function Home() {
 	const [products, setProducts] = useState<any[]>([]);
 	const [currentSlide, setCurrentSlide] = useState(0);
+	const [isTransitioning, setIsTransitioning] = useState(true);
 	const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 	const touchStartX = useRef(0);
 	const touchEndX = useRef(0);
 	const [touchDelta, setTouchDelta] = useState(0);
+
+	const extendedSlides = [...slides, ...slides, ...slides];
+	const startIndex = slides.length + currentSlide;
 
 	useEffect(() => {
 		getProducts().then(setProducts);
@@ -51,7 +54,7 @@ export default function Home() {
 	const startAutoPlay = () => {
 		if (autoPlayRef.current) clearInterval(autoPlayRef.current);
 		autoPlayRef.current = setInterval(() => {
-			setCurrentSlide((prev) => (prev + 1) % slides.length);
+			setCurrentSlide((prev) => prev + 1);
 		}, 3000);
 	};
 
@@ -62,8 +65,41 @@ export default function Home() {
 		};
 	}, []);
 
+	useEffect(() => {
+		if (currentSlide >= slides.length) {
+			const timeout = setTimeout(() => {
+				setIsTransitioning(false);
+				setCurrentSlide(currentSlide % slides.length);
+				requestAnimationFrame(() => {
+					setIsTransitioning(true);
+				});
+			}, 500);
+			return () => clearTimeout(timeout);
+		}
+		if (currentSlide < 0) {
+			const timeout = setTimeout(() => {
+				setIsTransitioning(false);
+				setCurrentSlide(slides.length + (currentSlide % slides.length));
+				requestAnimationFrame(() => {
+					setIsTransitioning(true);
+				});
+			}, 500);
+			return () => clearTimeout(timeout);
+		}
+	}, [currentSlide]);
+
 	const goToSlide = (index: number) => {
 		setCurrentSlide(index);
+		startAutoPlay();
+	};
+
+	const nextSlide = () => {
+		setCurrentSlide((prev) => prev + 1);
+		startAutoPlay();
+	};
+
+	const prevSlide = () => {
+		setCurrentSlide((prev) => prev - 1);
 		startAutoPlay();
 	};
 
@@ -82,26 +118,15 @@ export default function Home() {
 	const handleTouchEnd = () => {
 		const diff = touchStartX.current - touchEndX.current;
 		if (Math.abs(diff) > 50) {
-			if (diff > 0) setCurrentSlide((prev) => (prev + 1) % slides.length);
-			else
-				setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+			if (diff > 0) {
+				setCurrentSlide((prev) => prev + 1);
+			} else {
+				setCurrentSlide((prev) => prev - 1);
+			}
 		}
 		setTouchDelta(0);
 		startAutoPlay();
 	};
-
-	const nextSlide = () => {
-		setCurrentSlide((prev) => (prev + 1) % slides.length);
-		startAutoPlay();
-	};
-
-	const prevSlide = () => {
-		setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-		startAutoPlay();
-	};
-
-	const extendedSlides = [...slides, ...slides, ...slides];
-	const startIndex = slides.length + currentSlide;
 
 	return (
 		<main>
@@ -115,7 +140,6 @@ export default function Home() {
 				onTouchEnd={handleTouchEnd}>
 				{/* Десктоп: 3 колонки */}
 				<div className="hidden md:block relative">
-					{/* Стрелка влево */}
 					<button
 						onClick={prevSlide}
 						className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110">
@@ -133,8 +157,6 @@ export default function Home() {
 							<path d="M15 18l-6-6 6-6" />
 						</svg>
 					</button>
-
-					{/* Стрелка вправо */}
 					<button
 						onClick={nextSlide}
 						className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110">
@@ -154,9 +176,12 @@ export default function Home() {
 					</button>
 
 					<div
-						className="flex transition-transform duration-500 ease-in-out"
+						className="flex"
 						style={{
 							transform: `translateX(-${startIndex * (100 / 3)}%)`,
+							transition: isTransitioning
+								? "transform 0.5s ease-in-out"
+								: "none",
 						}}>
 						{extendedSlides.map((slide, i) => (
 							<Link
@@ -183,14 +208,17 @@ export default function Home() {
 					</div>
 				</div>
 
-				{/* Мобилка: 1 фотка почти во весь экран */}
+				{/* Мобилка */}
 				<div className="md:hidden relative pt-4">
 					<div
-						className="flex transition-transform duration-500 ease-in-out"
+						className="flex"
 						style={{
 							transform: touchDelta
 								? `translateX(calc(-${startIndex * 100}% - ${touchDelta}px))`
 								: `translateX(-${startIndex * 100}%)`,
+							transition: isTransitioning
+								? "transform 0.5s ease-in-out"
+								: "none",
 						}}>
 						{extendedSlides.map((slide, i) => (
 							<Link
@@ -223,7 +251,7 @@ export default function Home() {
 						<button
 							key={i}
 							onClick={() => goToSlide(i)}
-							className={`w-2 h-2 rounded-full transition-all duration-300 ${i === currentSlide ? "bg-primary w-6" : "bg-gray-300"}`}
+							className={`w-2 h-2 rounded-full transition-all duration-300 ${i === currentSlide % slides.length ? "bg-primary w-6" : "bg-gray-300"}`}
 						/>
 					))}
 				</div>
