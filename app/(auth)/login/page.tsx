@@ -30,7 +30,8 @@ function LoginForm() {
 		setLoading(true);
 
 		try {
-			await api.post("/auth/login", { email, password });
+			const response = await api.post("/auth/login", { email, password });
+			localStorage.setItem("token", response.data.token);
 			await checkAuth();
 			router.push(redirect);
 		} catch (err: any) {

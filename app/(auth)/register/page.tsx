@@ -37,7 +37,8 @@ function RegisterForm() {
 		setLoading(true);
 
 		try {
-			await api.post("/auth/register", form);
+			const response = await api.post("/auth/register", form);
+			localStorage.setItem("token", response.data.token);
 			await checkAuth();
 			router.push(redirect);
 		} catch (err: any) {
