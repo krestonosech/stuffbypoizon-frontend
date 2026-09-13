@@ -103,11 +103,11 @@ function ProfileContent() {
 	const handleLogout = async () => {
 		try {
 			await api.post("/auth/logout");
-			setUser(null);
-			window.location.href = "/";
-		} catch {
-			window.location.href = "/";
-		}
+		} catch {}
+
+		localStorage.removeItem("token"); // ← удалите токен
+		setUser(null);
+		window.location.href = "/";
 	};
 
 	const lastOrders = orders.slice(0, 3);

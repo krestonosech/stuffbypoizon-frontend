@@ -70,7 +70,7 @@ const SNEAKER_SIZES = [
 const CLOTHING_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL"];
 
 const categories = [
-	{ key: "Sneakers", label: "Кроссовки" },
+	{ key: "Sneakers", label: "Обувь" },
 	{ key: "Clothing", label: "Одежда" },
 	{ key: "Accessories", label: "Аксессуары" },
 	{ key: "Bags", label: "Сумки" },

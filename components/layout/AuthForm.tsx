@@ -32,12 +32,19 @@ export default function AuthForm({ mode }: AuthFormProps) {
 					? { email: formData.email, password: formData.password }
 					: formData;
 
-			const res = await fetch(`http://localhost:3000${endpoint}`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-				credentials: "include",
-			});
+			const token = localStorage.getItem("token");
+			const res = await fetch(
+				`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}${endpoint}`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						...(token ? { Authorization: `Bearer ${token}` } : {}),
+					},
+					body: JSON.stringify(body),
+					credentials: "include",
+				},
+			);
 
 			const data = await res.json();
 

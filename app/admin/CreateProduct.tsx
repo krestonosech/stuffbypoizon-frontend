@@ -97,11 +97,18 @@ export default function CreateProduct({
 				),
 			);
 			imageFiles.forEach((f) => fd.append("images", f));
-			const res = await fetch("http://localhost:3001/api/admin/products", {
-				method: "POST",
-				credentials: "include",
-				body: fd,
-			});
+			const token = localStorage.getItem("token");
+			const res = await fetch(
+				`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/admin/products`,
+				{
+					method: "POST",
+					credentials: "include",
+					headers: {
+						...(token ? { Authorization: `Bearer ${token}` } : {}),
+					},
+					body: fd,
+				},
+			);
 			const data = await res.json();
 			if (!res.ok) throw new Error(data.error || "Ошибка");
 			setCreateSuccess("Товар создан!");
@@ -187,7 +194,7 @@ export default function CreateProduct({
 							}}
 							required>
 							<option value="">Выбрать</option>
-							<option value="Sneakers">Кроссовки</option>
+							<option value="Sneakers">Обувь</option>
 							<option value="Clothing">Одежда</option>
 							<option value="Accessories">Аксессуары</option>
 							<option value="Bags">Сумки</option>

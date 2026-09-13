@@ -99,11 +99,18 @@ export default function EditProduct({ product, onSuccess }: Props) {
 				),
 			);
 			imageFiles.forEach((f) => fd.append("images", f));
-			await fetch(`http://localhost:3001/api/admin/products/${product.id}`, {
-				method: "PUT",
-				credentials: "include",
-				body: fd,
-			});
+			const token = localStorage.getItem("token");
+			await fetch(
+				`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/admin/products/${product.id}`,
+				{
+					method: "PUT",
+					credentials: "include",
+					headers: {
+						...(token ? { Authorization: `Bearer ${token}` } : {}),
+					},
+					body: fd,
+				},
+			);
 			onSuccess();
 		} catch {}
 		setSaving(false);
@@ -123,7 +130,7 @@ export default function EditProduct({ product, onSuccess }: Props) {
 			type: "select",
 			options: [
 				{ value: "", label: "Выбрать" },
-				{ value: "Sneakers", label: "Кроссовки" },
+				{ value: "Sneakers", label: "Обувь" },
 				{ value: "Clothing", label: "Одежда" },
 				{ value: "Accessories", label: "Аксессуары" },
 				{ value: "Bags", label: "Сумки" },

@@ -227,7 +227,7 @@ export default function Header() {
 						<Link
 							href="/catalog?type=Sneakers"
 							className="text-xs font-bold uppercase text-gray-500 hover:text-black transition tracking-wider">
-							Кроссовки
+							Обувь
 						</Link>
 						<Link
 							href="/catalog?type=Clothing"
@@ -510,7 +510,7 @@ export default function Header() {
 							<button
 								onClick={() => setExpandedSneakers(!expandedSneakers)}
 								className="w-full flex items-center justify-between text-sm font-bold uppercase text-gray-600 hover:text-black py-2 border-b border-gray-100 transition">
-								Кроссовки
+								Обувь
 								<svg
 									className={`w-4 h-4 transition-transform duration-300 ${expandedSneakers ? "rotate-90" : ""}`}
 									viewBox="0 0 24 24"
