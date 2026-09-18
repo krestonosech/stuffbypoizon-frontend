@@ -70,11 +70,31 @@ const SNEAKER_SIZES = [
 const CLOTHING_SIZES = ["XXS", "XS", "S", "M", "L", "XL", "XXL"];
 
 const categories = [
-	{ key: "Sneakers", label: "Обувь" },
-	{ key: "Clothing", label: "Одежда" },
-	{ key: "Accessories", label: "Аксессуары" },
-	{ key: "Bags", label: "Сумки" },
+  { key: "Sneakers", label: "Обувь" },
+  { key: "Clothing", label: "Одежда" },
+  { key: "Accessories", label: "Аксессуары" },
+  { key: "Bags", label: "Сумки" },
+  { key: "Uggs", label: "Угги" },
 ];
+
+const BAG_SERIES_BY_BRAND: Record<string, string[]> = {
+  Gucci: ["GG Marmont", "Ophidia", "Dionysus", "Sylvie", "Jackie"],
+  Prada: ["Re-Edition", "Galleria", "Cleo", "Cahier"],
+  "Louis Vuitton": ["Neverfull", "Speedy", "Alma", "Capucines", "Onthego"],
+  Chanel: ["Classic Flap", "Boy", "Gabrielle", "19", "Coco Handle"],
+  Dior: ["Lady Dior", "Saddle", "Book Tote", "30 Montaigne"],
+};
+
+const UGG_SERIES: Record<string, string[]> = {
+  UGG: [
+    "Classic Short",
+    "Classic Tall",
+    "Mini",
+    "Bailey",
+    "Tasman",
+    "Disquette",
+  ],
+};
 
 const genders = [
 	{ key: "Men", label: "Мужской" },
@@ -233,9 +253,16 @@ export default function FiltersContent({
 		);
 	};
 
-	const currentSizes = typeFilter.includes("Clothing")
-		? CLOTHING_SIZES
-		: SNEAKER_SIZES;
+	const isClothing = typeFilter.includes("Clothing");
+  const isAccessories = typeFilter.includes("Accessories");
+  const isBags = typeFilter.includes("Bags");
+
+  const currentSizes = isClothing ? CLOTHING_SIZES : SNEAKER_SIZES;
+  const sizeLabel = isClothing
+    ? "РАЗМЕР ОДЕЖДЫ"
+    : typeFilter.includes("Uggs")
+      ? "РАЗМЕР УГГ (EU)"
+      : "РАЗМЕР ОБУВИ (EU)";
 	const availableSizesFrom = sizeTo
 		? currentSizes.filter(
 				(s) => currentSizes.indexOf(s) <= currentSizes.indexOf(sizeTo),
@@ -246,9 +273,6 @@ export default function FiltersContent({
 				(s) => currentSizes.indexOf(s) >= currentSizes.indexOf(sizeFrom),
 			)
 		: currentSizes;
-	const sizeLabel = typeFilter.includes("Clothing")
-		? "РАЗМЕР ОДЕЖДЫ"
-		: "РАЗМЕР ОБУВИ (EU)";
 	const showSizes =
 		!typeFilter.includes("Accessories") && !typeFilter.includes("Bags");
 
@@ -258,317 +282,323 @@ export default function FiltersContent({
 		onApply(localBrand, min, max, seriesFilter);
 	};
 
+	const currentSeries = localBrand
+    ? BAG_SERIES_BY_BRAND[localBrand] ||
+      UGG_SERIES[localBrand] ||
+      SERIES_BY_BRAND[localBrand]
+    : null;
+
 	return (
-		<div className="space-y-8">
-			{/* Категории */}
-			<div>
-				<h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
-					КАТЕГОРИИ
-				</h3>
-				<ul className="space-y-2">
-					{categories.map((cat) => (
-						<li key={cat.key}>
-							<label className="flex items-center gap-2 cursor-pointer group">
-								<input
-									type="checkbox"
-									checked={typeFilter.includes(cat.key)}
-									onChange={() =>
-										setTypeFilter(typeFilter.includes(cat.key) ? [] : [cat.key])
-									}
-									className="w-4 h-4 text-primary focus:ring-primary border-gray-200 cursor-pointer"
-								/>
-								<span className="text-sm font-bold uppercase text-gray-500 group-hover:text-primary transition cursor-pointer">
-									{cat.label}
-								</span>
-							</label>
-						</li>
-					))}
-				</ul>
-			</div>
+    <div className="space-y-8">
+      {/* Категории */}
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
+          КАТЕГОРИИ
+        </h3>
+        <ul className="space-y-2">
+          {categories.map((cat) => (
+            <li key={cat.key}>
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={typeFilter.includes(cat.key)}
+                  onChange={() =>
+                    setTypeFilter(typeFilter.includes(cat.key) ? [] : [cat.key])
+                  }
+                  className="w-4 h-4 text-primary focus:ring-primary border-gray-200 cursor-pointer"
+                />
+                <span className="text-sm font-bold uppercase text-gray-500 group-hover:text-primary transition cursor-pointer">
+                  {cat.label}
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-			{/* Пол */}
-			<div>
-				<h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
-					ПОЛ
-				</h3>
-				<ul className="space-y-2">
-					{genders.map((g) => (
-						<li key={g.key}>
-							<label className="flex items-center gap-2 cursor-pointer group">
-								<input
-									type="checkbox"
-									checked={genderFilter.includes(g.key)}
-									onChange={() =>
-										setGenderFilter(genderFilter.includes(g.key) ? [] : [g.key])
-									}
-									className="w-4 h-4 text-primary focus:ring-primary border-gray-200 cursor-pointer"
-								/>
-								<span className="text-sm font-bold uppercase text-gray-500 group-hover:text-primary transition cursor-pointer">
-									{g.label}
-								</span>
-							</label>
-						</li>
-					))}
-				</ul>
-			</div>
+      {/* Пол */}
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
+          ПОЛ
+        </h3>
+        <ul className="space-y-2">
+          {genders.map((g) => (
+            <li key={g.key}>
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={genderFilter.includes(g.key)}
+                  onChange={() =>
+                    setGenderFilter(genderFilter.includes(g.key) ? [] : [g.key])
+                  }
+                  className="w-4 h-4 text-primary focus:ring-primary border-gray-200 cursor-pointer"
+                />
+                <span className="text-sm font-bold uppercase text-gray-500 group-hover:text-primary transition cursor-pointer">
+                  {g.label}
+                </span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-			{/* Размеры */}
-			{showSizes && (
-				<div>
-					<h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
-						{sizeLabel}
-					</h3>
-					<div className="flex items-center gap-2">
-						<div className="relative w-full">
-							<button
-								onClick={() => {
-									setSizeFromOpen(!sizeFromOpen);
-									setSizeToOpen(false);
-								}}
-								className="w-full flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg p-2 text-xs font-bold uppercase text-gray-500 hover:border-gray-200 transition cursor-pointer">
-								{sizeFrom || "ОТ"}{" "}
-								<svg
-									width="10"
-									height="10"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2">
-									<polyline points="6 9 12 15 18 9" />
-								</svg>
-							</button>
-							{sizeFromOpen && (
-								<>
-									<div
-										className="fixed inset-0 z-10"
-										onClick={() => setSizeFromOpen(false)}
-									/>
-									<div className="absolute left-0 top-full mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 max-h-48 overflow-y-auto">
-										{availableSizesFrom.map((s) => (
-											<button
-												key={s}
-												onClick={() => {
-													setSizeFrom(s);
-													setSizeFromOpen(false);
-												}}
-												className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition cursor-pointer ${sizeFrom === s ? "text-primary bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}>
-												{s}
-											</button>
-										))}
-									</div>
-								</>
-							)}
-						</div>
-						<span className="text-gray-300 text-xs">-</span>
-						<div className="relative w-full">
-							<button
-								onClick={() => {
-									setSizeToOpen(!sizeToOpen);
-									setSizeFromOpen(false);
-								}}
-								className="w-full flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg p-2 text-xs font-bold uppercase text-gray-500 hover:border-gray-200 transition cursor-pointer">
-								{sizeTo || "ДО"}{" "}
-								<svg
-									width="10"
-									height="10"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2">
-									<polyline points="6 9 12 15 18 9" />
-								</svg>
-							</button>
-							{sizeToOpen && (
-								<>
-									<div
-										className="fixed inset-0 z-10"
-										onClick={() => setSizeToOpen(false)}
-									/>
-									<div className="absolute left-0 top-full mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 max-h-48 overflow-y-auto">
-										{availableSizesTo.map((s) => (
-											<button
-												key={s}
-												onClick={() => {
-													setSizeTo(s);
-													setSizeToOpen(false);
-												}}
-												className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition cursor-pointer ${sizeTo === s ? "text-primary bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}>
-												{s}
-											</button>
-										))}
-									</div>
-								</>
-							)}
-						</div>
-					</div>
-				</div>
-			)}
+      {/* Размеры */}
+      {showSizes && (
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
+            {sizeLabel}
+          </h3>
+          <div className="flex items-center gap-2">
+            <div className="relative w-full">
+              <button
+                onClick={() => {
+                  setSizeFromOpen(!sizeFromOpen);
+                  setSizeToOpen(false);
+                }}
+                className="w-full flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg p-2 text-xs font-bold uppercase text-gray-500 hover:border-gray-200 transition cursor-pointer">
+                {sizeFrom || "ОТ"}{" "}
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {sizeFromOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setSizeFromOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 max-h-48 overflow-y-auto">
+                    {availableSizesFrom.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          setSizeFrom(s);
+                          setSizeFromOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition cursor-pointer ${sizeFrom === s ? "text-primary bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <span className="text-gray-300 text-xs">-</span>
+            <div className="relative w-full">
+              <button
+                onClick={() => {
+                  setSizeToOpen(!sizeToOpen);
+                  setSizeFromOpen(false);
+                }}
+                className="w-full flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg p-2 text-xs font-bold uppercase text-gray-500 hover:border-gray-200 transition cursor-pointer">
+                {sizeTo || "ДО"}{" "}
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              {sizeToOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setSizeToOpen(false)}
+                  />
+                  <div className="absolute left-0 top-full mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg z-20 py-1 max-h-48 overflow-y-auto">
+                    {availableSizesTo.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          setSizeTo(s);
+                          setSizeToOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition cursor-pointer ${sizeTo === s ? "text-primary bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
-			{/* Цвета */}
-			<div>
-				<h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
-					ЦВЕТ
-				</h3>
-				<div className="flex flex-wrap gap-2">
-					{COLORS.map((c) => (
-						<button
-							key={c.name}
-							onClick={() => toggleColor(c.name)}
-							className={`w-8 h-8 rounded-full border-2 transition cursor-pointer ${colorFilter.includes(c.name) ? "border-primary scale-110" : "border-gray-200 hover:border-gray-400"}`}
-							style={{ background: c.hex }}
-							title={c.name}
-						/>
-					))}
-				</div>
-			</div>
+      {/* Цвета */}
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
+          ЦВЕТ
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {COLORS.map((c) => (
+            <button
+              key={c.name}
+              onClick={() => toggleColor(c.name)}
+              className={`w-8 h-8 rounded-full border-2 transition cursor-pointer ${colorFilter.includes(c.name) ? "border-primary scale-110" : "border-gray-200 hover:border-gray-400"}`}
+              style={{ background: c.hex }}
+              title={c.name}
+            />
+          ))}
+        </div>
+      </div>
 
-			{/* Бренд — селект */}
-			<div>
-				<h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
-					БРЕНД
-				</h3>
-				<div className="relative">
-					<button
-						onClick={() => setBrandDropdownOpen(!brandDropdownOpen)}
-						className="w-full flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg p-2 text-xs font-bold uppercase text-gray-500 hover:border-gray-200 transition cursor-pointer">
-						{localBrand || "Выбрать бренд"}{" "}
-						<svg
-							width="10"
-							height="10"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2">
-							<polyline points="6 9 12 15 18 9" />
-						</svg>
-					</button>
-					{brandDropdownOpen && (
-						<>
-							<div
-								className="fixed inset-0 z-10"
-								onClick={() => setBrandDropdownOpen(false)}
-							/>
-							<div className="absolute left-0 top-full mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg z-20 overflow-hidden">
-								<div className="p-2 border-b border-gray-100">
-									<input
-										className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-xs focus:ring-0 focus:border-gray-200"
-										placeholder="Поиск бренда..."
-										value={brandSearch}
-										onChange={(e) => setBrandSearch(e.target.value)}
-										onClick={(e) => e.stopPropagation()}
-									/>
-								</div>
-								<div className="max-h-48 overflow-y-auto">
-									<button
-										onClick={() => {
-											setLocalBrand("");
-											setSeriesFilter("");
-											setBrandDropdownOpen(false);
-										}}
-										className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition cursor-pointer ${!localBrand ? "text-primary bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}>
-										Все бренды
-									</button>
-									{filteredBrands.map((brand) => (
-										<button
-											key={brand}
-											onClick={() => {
-												setLocalBrand(brand);
-												setSeriesFilter("");
-												setBrandDropdownOpen(false);
-											}}
-											className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition cursor-pointer ${localBrand === brand ? "text-primary bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}>
-											{brand}
-										</button>
-									))}
-								</div>
-							</div>
-						</>
-					)}
-				</div>
-			</div>
+      {/* Бренд — селект */}
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
+          БРЕНД
+        </h3>
+        <div className="relative">
+          <button
+            onClick={() => setBrandDropdownOpen(!brandDropdownOpen)}
+            className="w-full flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg p-2 text-xs font-bold uppercase text-gray-500 hover:border-gray-200 transition cursor-pointer">
+            {localBrand || "Выбрать бренд"}{" "}
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {brandDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setBrandDropdownOpen(false)}
+              />
+              <div className="absolute left-0 top-full mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg z-20 overflow-hidden">
+                <div className="p-2 border-b border-gray-100">
+                  <input
+                    className="w-full bg-gray-50 border border-gray-100 rounded-lg px-2 py-1 text-xs focus:ring-0 focus:border-gray-200"
+                    placeholder="Поиск бренда..."
+                    value={brandSearch}
+                    onChange={(e) => setBrandSearch(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  <button
+                    onClick={() => {
+                      setLocalBrand("");
+                      setSeriesFilter("");
+                      setBrandDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition cursor-pointer ${!localBrand ? "text-primary bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}>
+                    Все бренды
+                  </button>
+                  {filteredBrands.map((brand) => (
+                    <button
+                      key={brand}
+                      onClick={() => {
+                        setLocalBrand(brand);
+                        setSeriesFilter("");
+                        setBrandDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition cursor-pointer ${localBrand === brand ? "text-primary bg-blue-50" : "text-gray-500 hover:bg-gray-50"}`}>
+                      {brand}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
 
-			{/* Серии — список под брендом */}
-			{localBrand && SERIES_BY_BRAND[localBrand] && (
-				<div>
-					<h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
-						СЕРИЯ
-					</h3>
-					<div className="flex flex-wrap gap-2">
-						<button
-							onClick={() => setSeriesFilter("")}
-							className={`px-3 py-1.5 text-[11px] font-bold uppercase rounded-lg border transition cursor-pointer ${!seriesFilter ? "bg-primary text-white border-primary" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
-							Все
-						</button>
-						{SERIES_BY_BRAND[localBrand].map((series) => (
-							<button
-								key={series}
-								onClick={() => setSeriesFilter(series)}
-								className={`px-3 py-1.5 text-[11px] font-bold uppercase rounded-lg border transition cursor-pointer ${seriesFilter === series ? "bg-primary text-white border-primary" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
-								{series}
-							</button>
-						))}
-					</div>
-				</div>
-			)}
+      {/* Серии — список под брендом */}
+      {localBrand && currentSeries && (
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
+            СЕРИЯ
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSeriesFilter("")}
+              className={`px-3 py-1.5 text-[11px] font-bold uppercase rounded-lg border transition cursor-pointer ${!seriesFilter ? "bg-primary text-white border-primary" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
+              Все
+            </button>
+            {currentSeries.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSeriesFilter(s)}
+                className={`px-3 py-1.5 text-[11px] font-bold uppercase rounded-lg border transition cursor-pointer ${seriesFilter === s ? "bg-primary text-white border-primary" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-			{/* Сезон */}
-			<div>
-				<h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
-					СЕЗОН
-				</h3>
-				<div className="grid grid-cols-2 gap-2">
-					{SEASONS.map((s) => (
-						<button
-							key={s.key}
-							onClick={() =>
-								setSeasonFilter(seasonFilter.includes(s.key) ? [] : [s.key])
-							}
-							className={`py-2 text-xs font-bold uppercase rounded-lg border transition cursor-pointer ${seasonFilter.includes(s.key) ? "bg-primary text-white border-primary" : "border-gray-100 text-gray-500 hover:border-gray-300"}`}>
-							{s.label}
-						</button>
-					))}
-				</div>
-			</div>
+      {/* Сезон */}
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
+          СЕЗОН
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          {SEASONS.map((s) => (
+            <button
+              key={s.key}
+              onClick={() =>
+                setSeasonFilter(seasonFilter.includes(s.key) ? [] : [s.key])
+              }
+              className={`py-2 text-xs font-bold uppercase rounded-lg border transition cursor-pointer ${seasonFilter.includes(s.key) ? "bg-primary text-white border-primary" : "border-gray-100 text-gray-500 hover:border-gray-300"}`}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-			{/* Цена */}
-			<div>
-				<h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
-					ЦЕНА (RUB)
-				</h3>
-				<div className="flex items-center gap-2">
-					<input
-						ref={minInputRef}
-						className="w-full border border-gray-100 rounded-lg bg-gray-50 p-2 text-sm focus:border-gray-200 focus:ring-0 placeholder:text-gray-300"
-						placeholder="ОТ"
-						type="number"
-					/>
-					<input
-						ref={maxInputRef}
-						className="w-full border border-gray-100 rounded-lg bg-gray-50 p-2 text-sm focus:border-gray-200 focus:ring-0 placeholder:text-gray-300"
-						placeholder="ДО"
-						type="number"
-					/>
-				</div>
-			</div>
+      {/* Цена */}
+      <div>
+        <h3 className="text-xs font-bold uppercase tracking-widest border-b border-gray-100 pb-2 mb-3">
+          ЦЕНА (RUB)
+        </h3>
+        <div className="flex items-center gap-2">
+          <input
+            ref={minInputRef}
+            className="w-full border border-gray-100 rounded-lg bg-gray-50 p-2 text-sm focus:border-gray-200 focus:ring-0 placeholder:text-gray-300"
+            placeholder="ОТ"
+            type="number"
+          />
+          <input
+            ref={maxInputRef}
+            className="w-full border border-gray-100 rounded-lg bg-gray-50 p-2 text-sm focus:border-gray-200 focus:ring-0 placeholder:text-gray-300"
+            placeholder="ДО"
+            type="number"
+          />
+        </div>
+      </div>
 
-			<div className="space-y-2">
-				<button
-					onClick={handleApply}
-					className="w-full py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:opacity-90 transition cursor-pointer">
-					Применить
-				</button>
-				<button
-					onClick={() => {
-						if (minInputRef.current) minInputRef.current.value = "0";
-						if (maxInputRef.current) maxInputRef.current.value = "200000";
-						setLocalBrand("");
-						setSeriesFilter("");
-						onReset();
-					}}
-					className="w-full py-2.5 border border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-gray-50 transition cursor-pointer">
-					Сбросить фильтры
-				</button>
-			</div>
-		</div>
-	);
+      <div className="space-y-2">
+        <button
+          onClick={handleApply}
+          className="w-full py-2.5 bg-primary text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:opacity-90 transition cursor-pointer">
+          Применить
+        </button>
+        <button
+          onClick={() => {
+            if (minInputRef.current) minInputRef.current.value = "0";
+            if (maxInputRef.current) maxInputRef.current.value = "200000";
+            setLocalBrand("");
+            setSeriesFilter("");
+            onReset();
+          }}
+          className="w-full py-2.5 border border-gray-100 text-gray-400 text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-gray-50 transition cursor-pointer">
+          Сбросить фильтры
+        </button>
+      </div>
+    </div>
+  );
 }

@@ -13,42 +13,43 @@ export default function Footer() {
 	};
 
 	const sections = [
-		{
-			id: "account",
-			title: "ЛИЧНЫЙ КАБИНЕТ",
-			links: user
-				? [{ label: "Профиль", href: "/profile" }]
-				: [
-						{ label: "Войти", href: "/login" },
-						{ label: "Регистрация", href: "/register" },
-					],
-		},
-		{
-			id: "contacts",
-			title: "КОНТАКТЫ",
-			links: [
-				{ label: "Telegram", href: "#" },
-				{ label: "WhatsApp", href: "#" },
-			],
-		},
-		{
-			id: "info",
-			title: "ИНФОРМАЦИЯ",
-			links: [
-				{ label: "Доставка", href: "#" },
-				{ label: "Оплата", href: "#" },
-			],
-		},
-		{
-			id: "legal",
-			title: "ПРАВОВАЯ",
-			links: [
-				{ label: "Приватность", href: "#" },
-				{ label: "Условия", href: "#" },
-				{ label: "Отзывы", href: "/reviews" },
-			],
-		},
-	];
+    {
+      id: "account",
+      title: "ЛИЧНЫЙ КАБИНЕТ",
+      links: user
+        ? [{ label: "Профиль", href: "/profile" }]
+        : [
+            { label: "Войти", href: "/login" },
+            { label: "Регистрация", href: "/register" },
+          ],
+    },
+    {
+      id: "contacts",
+      title: "КОНТАКТЫ",
+      links: [
+        { label: "Telegram", href: "#" },
+        { label: "WhatsApp", href: "#" },
+      ],
+    },
+    {
+      id: "info",
+      title: "ИНФОРМАЦИЯ",
+      links: [
+        { label: "О нас", href: "#" },
+        { label: "Доставка", href: "#" },
+        { label: "Оплата", href: "#" },
+      ],
+    },
+    {
+      id: "legal",
+      title: "ПРАВОВАЯ",
+      links: [
+        { label: "Приватность", href: "#" },
+        { label: "Условия", href: "#" },
+        { label: "Отзывы", href: "/reviews" },
+      ],
+    },
+  ];
 
 	return (
 		<footer className="w-full py-10 md:py-14 bg-black border-t border-[#222]">
@@ -135,7 +136,7 @@ export default function Footer() {
 						</span>
 					</div>
 					<p className="text-[10px] md:text-[11px] text-[#666] uppercase tracking-widest">
-						© 2024 STUFFBYPOIZON.RU
+						© 2026 STUFFBYPOIZON.RU
 					</p>
 				</div>
 			</div>

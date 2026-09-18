@@ -3,11 +3,14 @@ import "./globals.css";
 import { AuthProvider } from "../lib/auth-context";
 
 export const metadata: Metadata = {
-	title: "STUFFBYPOIZON.RU",
-	description: "Эксклюзивные кроссовки и аутентичная уличная культура",
-	icons: {
-		icon: "/main.png",
-	},
+  title: {
+    default: "StuffByPozion",
+    template: "%s | StuffByPozion",
+  },
+  description: "Эксклюзивные кроссовки и аутентичная уличная культура",
+  icons: {
+    icon: "/main.png",
+  },
 };
 
 export default function RootLayout({

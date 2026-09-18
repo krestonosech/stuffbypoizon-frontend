@@ -13,7 +13,9 @@ export default function ForgotPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+	const [loading, setLoading] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,28 +130,44 @@ export default function ForgotPasswordPage() {
         {step === "password" && (
           <form onSubmit={handlePassword} className="space-y-4 mt-6">
             <p className="text-gray-500 text-sm">Придумайте новый пароль</p>
-            <input
-              type="password"
-              placeholder="Новый пароль"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm"
-              required
-            />
-            <input
-              type="password"
-              placeholder="Повторите пароль"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Новый пароль"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full h-12 px-4 pr-12 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition cursor-pointer">
+                {showPassword ? "🙈" : "👁"}
+              </button>
+            </div>
+            <div className="relative">
+              <input
+                type={showConfirm ? "text" : "password"}
+                placeholder="Повторите пароль"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className="w-full h-12 px-4 pr-12 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition cursor-pointer">
+                {showConfirm ? "🙈" : "👁"}
+              </button>
+            </div>
             {error && (
               <p className="text-red-500 text-xs text-center">{error}</p>
             )}
             <button
               disabled={loading}
-              className="w-full h-12 bg-primary text-white font-bold uppercase rounded-xl">
+              className="w-full h-12 bg-primary text-white font-bold uppercase rounded-xl cursor-pointer">
               {loading ? "Сохранение..." : "Сохранить пароль"}
             </button>
           </form>
