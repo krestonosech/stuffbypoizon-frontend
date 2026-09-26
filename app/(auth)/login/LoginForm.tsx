@@ -66,9 +66,9 @@ function LoginForm() {
           className="w-20 h-20 rounded-full mb-4"
         />
         <h1
-          className="text-2xl font-extrabold tracking-tight uppercase"
-          style={{ fontFamily: "Montserrat, sans-serif" }}>
-          STUFFBYPOIZON
+        	className="text-2xl font-extrabold tracking-tight uppercase flex flex-col items-center leading-none"
+        	style={{ fontFamily: "Montserrat, sans-serif" }}>
+        	STUFF BY POIZON
         </h1>
       </div>
 

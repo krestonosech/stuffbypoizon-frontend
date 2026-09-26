@@ -160,32 +160,24 @@ export default function ProductClient({ id }: { id: string }) {
   } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  const addToFavoritesWithSize = () => {
-    if (!product || !favSize) return;
-    const saved = localStorage.getItem("favorites");
-    let favs: any[] = saved ? JSON.parse(saved) : [];
-    const exists = favs.find(
-      (f: any) => f.id === product.id && f.size === favSize,
-    );
-    if (!exists) {
-      favs.push({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        images: product.images,
-        image: product.images?.[0] || null,
-        type: product.type,
-        gender: product.gender,
-        skus: product.skus,
-        itemNumber: product.itemNumber,
-        size: favSize,
-      });
-      localStorage.setItem("favorites", JSON.stringify(favs));
-      window.dispatchEvent(new Event("favoritesUpdated"));
-    }
-    setFavSizeModal(false);
-    setFavSize("");
-    setIsFavorited(true);
+  const addToFavoritesWithSize = async () => {
+  	if (!product || !favSize || !user) {
+  		setFavSizeModal(false);
+  		setFavSize("");
+  		return;
+  	}
+  	const { addFavorite } = await import("../../../lib/favorites");
+  	await addFavorite(product.id, favSize);
+  	setFavSizeModal(false);
+  	setFavSize("");
+  	setIsFavorited(true);
+  };
+
+  const removeFromFavorites = async () => {
+  	if (!product || !user) return;
+  	const { removeFavorite } = await import("../../../lib/favorites");
+  	await removeFavorite(product.id);
+  	setIsFavorited(false);
   };
 
   const handlePhoneChange = (value: string) => {
@@ -301,20 +293,15 @@ export default function ProductClient({ id }: { id: string }) {
     }
   };
 
-  // 5. Рандомные рекомендации: 2 женские + 2 мужские
   const fetchRecommended = async () => {
-    try {
-      const { data: women } = await api.get(
-        "/products?gender=Women&pageSize=2&sortBy=createdAt&order=desc",
-      );
-      const { data: men } = await api.get(
-        "/products?gender=Men&pageSize=2&sortBy=createdAt&order=desc",
-      );
-      const all = [...(women.data || []), ...(men.data || [])].sort(
-        () => Math.random() - 0.5,
-      );
-      setRecommended(all);
-    } catch {}
+  	try {
+  		const { data } = await api.get(
+  			`/products/recommended?productId=${id}`,
+  		);
+  		setRecommended(data.data || []);
+  	} catch {
+  		setRecommended([]);
+  	}
   };
 
   const formatDate = (date?: string) => {
@@ -373,13 +360,17 @@ export default function ProductClient({ id }: { id: string }) {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem("favorites");
-    if (saved) {
-      try {
-        setIsFavorited(JSON.parse(saved).some((f: any) => f.id === id));
-      } catch {}
-    }
-  }, [id]);
+  	if (!user) {
+  		setIsFavorited(false);
+  		return;
+  	}
+  	const check = async () => {
+  		const { fetchFavorites } = await import("../../../lib/favorites");
+  		const favs = await fetchFavorites();
+  		setIsFavorited(favs.some((f) => f.id === id));
+  	};
+  	check();
+  }, [id, user]);
 
   if (loading) {
     return (
@@ -424,7 +415,7 @@ export default function ProductClient({ id }: { id: string }) {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
             <div className="md:col-span-7 space-y-4">
               <div
-                className="relative aspect-[4/3] bg-gray-50 overflow-hidden rounded-2xl flex items-center justify-center cursor-pointer"
+                className="relative aspect-[4/3] bg-white overflow-hidden rounded-2xl flex items-center justify-center cursor-pointer"
                 onClick={() => setImageModal(true)}>
                 {product.images?.length > 0 ? (
                   <img
@@ -646,10 +637,20 @@ export default function ProductClient({ id }: { id: string }) {
                   </p>
                 )}
                 <button
-                  onClick={() => setFavSizeModal(true)}
-                  disabled={!selectedSku || selectedSku.stock === 0}
-                  className={`w-full border py-4 text-sm font-bold uppercase tracking-wider rounded-xl transition disabled:opacity-30 cursor-pointer ${isFavorited ? "border-red-200 text-red-500 bg-red-50 hover:bg-red-100" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
-                  {isFavorited ? "В ИЗБРАННОМ" : "В ИЗБРАННОЕ"}
+                	onClick={() => {
+                		if (!user) {
+                			setAuthModal(true);
+                			return;
+                		}
+                		if (isFavorited) {
+                			removeFromFavorites();
+                		} else {
+                			setFavSizeModal(true);
+                		}
+                	}}
+                	disabled={!selectedSku || selectedSku.stock === 0}
+                	className={`w-full border py-4 text-sm font-bold uppercase tracking-wider rounded-xl transition disabled:opacity-30 cursor-pointer ${isFavorited ? "border-red-200 text-red-500 bg-red-50 hover:bg-red-100" : "border-gray-200 text-gray-600 hover:bg-gray-50"}`}>
+                	{isFavorited ? "УБРАТЬ ИЗ ИЗБРАННОГО" : "В ИЗБРАННОЕ"}
                 </button>
 
                 <div
@@ -785,43 +786,49 @@ export default function ProductClient({ id }: { id: string }) {
           </div>
 
           {recommended.length > 0 && (
-            <section className="mt-16 border-t border-gray-100 pt-12">
-              <h2
-                className="text-2xl md:text-3xl font-extrabold uppercase mb-8"
-                style={{ fontFamily: "Montserrat, sans-serif" }}>
-                ДОПОЛНИТЕ ОБРАЗ
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                {recommended.map((rec: any) => (
-                  <Link
-                    key={rec.id}
-                    href={`/product/${rec.id}`}
-                    className="group cursor-pointer block">
-                    <div className="aspect-square bg-gray-50 overflow-hidden border border-gray-100 rounded-xl flex items-center justify-center p-4 group-hover:border-gray-300 transition">
-                      {rec.images?.[0] ? (
-                        <img
-                          src={rec.images[0]}
-                          alt={rec.name}
-                          className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="text-gray-400 text-xs text-center">
-                          {rec.name}
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-3">
-                      <p className="text-[11px] font-bold uppercase text-gray-800 group-hover:text-primary transition">
-                        {rec.name}
-                      </p>
-                      <p className="text-[11px] text-gray-400 font-bold">
-                        от {(rec.price || 0).toLocaleString()} RUB
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
+          	<section className="mt-16 border-t border-gray-100 pt-12">
+          		<h2
+          			className="text-2xl md:text-3xl font-extrabold uppercase mb-8"
+          			style={{ fontFamily: "Montserrat, sans-serif" }}>
+          			ДОПОЛНИТЕ ОБРАЗ
+          		</h2>
+          		<div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          			{recommended.map((rec: any) => {
+          				const minPrice = rec.skus?.length
+          					? Math.min(...rec.skus.map((s: any) => s.price))
+          					: rec.price || 0;
+                
+          				return (
+          					<Link
+          						key={rec.id}
+          						href={`/product/${rec.id}`}
+          						className="group cursor-pointer block">
+          						<div className="aspect-square bg-white overflow-hidden border border-gray-100 rounded-xl flex items-center justify-center p-4 group-hover:border-gray-300 transition">
+          							{rec.images?.[0] ? (
+          								<img
+          									src={rec.images[0]}
+          									alt={rec.name}
+          									className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-500"
+          								/>
+          							) : (
+          								<div className="text-gray-400 text-xs text-center">
+          									{rec.name}
+          								</div>
+          							)}
+          						</div>
+          						<div className="mt-3">
+          							<p className="text-[11px] font-bold uppercase text-gray-800 group-hover:text-primary transition truncate">
+          								{rec.name}
+          							</p>
+          							<p className="text-[11px] text-gray-400 font-bold mt-0.5">
+          								от {minPrice.toLocaleString()} RUB
+          							</p>
+          						</div>
+          					</Link>
+          				);
+          			})}
+          		</div>
+          	</section>
           )}
         </div>
       </div>
@@ -941,12 +948,12 @@ export default function ProductClient({ id }: { id: string }) {
       <Footer />
       {/* Быстрый заказ Aside */}
       <div
-        className={`fixed inset-0 z-50 flex justify-end transition-all duration-300 ${quickOrderOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        onClick={() => setQuickOrderOpen(false)}>
-        <div className="absolute inset-0 bg-black/60" />
-        <div
-          className={`relative w-full max-w-[300px] bg-white h-full overflow-y-auto shadow-xl p-6 transition-transform duration-300 ease-out ${quickOrderOpen ? "translate-x-0" : "translate-x-full"}`}
-          onClick={(e) => e.stopPropagation()}>
+	      className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${quickOrderOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+	      onClick={() => setQuickOrderOpen(false)}>
+	      <div className="absolute inset-0 bg-black/60" />
+	      <div
+	      	className={`relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto transition-all duration-300 ease-out ${quickOrderOpen ? "scale-100 opacity-100" : "scale-95 opacity-0"}`}
+	      	onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-between items-center mb-6">
             <h2
               className="text-lg font-extrabold uppercase"
@@ -962,56 +969,20 @@ export default function ProductClient({ id }: { id: string }) {
 
           {quickSuccess ? (
             <div className="text-center py-8">
-              <div className="text-4xl mb-4">&#10003;</div>
-              <p className="text-lg font-bold mb-2">Спасибо за заказ!</p>
-              <p className="text-gray-500 text-sm mb-6">
-                Мы свяжемся с вами в ближайшее время.
-              </p>
-
-              {createdAccount && (
-                <div className="bg-blue-50 rounded-xl p-4 text-left mb-6">
-                  <p className="text-xs font-bold text-primary uppercase mb-3">
-                    Ваш аккаунт создан
-                  </p>
-                  <div className="space-y-2 text-sm">
-                    <p>
-                      <span className="text-gray-500">Email: </span>
-                      <span className="font-bold">{createdAccount.email}</span>
-                    </p>
-                    <p>
-                      <span className="text-gray-500">Телефон: </span>
-                      <span className="font-bold">{createdAccount.phone}</span>
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Пароль: </span>
-                      <span className="font-bold">
-                        {showPassword ? createdAccount.password : "••••••••"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="text-primary text-xs font-bold hover:underline">
-                        {showPassword ? "Скрыть" : "Показать"}
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-4 leading-relaxed">
-                    Сохраните пароль. Если забудете — восстановите его через
-                    «Забыли пароль?» на странице входа.
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={() => {
-                  setQuickOrderOpen(false);
-                  setQuickSuccess(false);
-                  setCreatedAccount(null);
-                }}
-                className="text-primary font-bold text-sm hover:underline">
-                Закрыть
-              </button>
-            </div>
+	          	<div className="text-4xl mb-4">&#10003;</div>
+	          	<p className="text-lg font-bold mb-2">Спасибо за заказ!</p>
+	          	<p className="text-gray-500 text-sm mb-6">
+	          		Мы свяжемся с вами в ближайшее время.
+	          	</p>
+	          	<button
+	          		onClick={() => {
+	          			setQuickOrderOpen(false);
+	          			setQuickSuccess(false);
+	          		}}
+	          		className="text-primary font-bold text-sm hover:underline">
+	          		Закрыть
+	          	</button>
+	          </div>
           ) : (
             <>
               {/* Товар */}

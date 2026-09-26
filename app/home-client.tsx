@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import api from "../lib/api";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
+import Reveal from "@/components/ui/Reveal";
 
 const slides = [
   { src: "/yeezy.jpg", label: "ОБУВЬ", href: "/catalog?type=Sneakers" },
@@ -26,17 +27,33 @@ const slides = [
   },
 ];
 
-async function getProducts() {
+const BRAND_SECTIONS = ["Yeezy", "Nike", "Balenciaga", "Adidas", "On Running"];
+
+async function getProductsByBrands() {
 	try {
-		const { data } = await api.get("/products?pageSize=8");
-		return data.data || [];
+		const results: { brand: string; products: any[] }[] = [];
+		for (const brand of BRAND_SECTIONS) {
+			const { data } = await api.get(
+				`/products?brand=${encodeURIComponent(brand)}&pageSize=8`,
+			);
+			const products = (data.data || []).sort(
+				() => Math.random() - 0.5,
+			);
+			if (products.length > 0) {
+				results.push({ brand, products });
+			}
+		}
+		return results;
 	} catch {
 		return [];
 	}
 }
 
 export default function Home() {
-	const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+	const [brandSections, setBrandSections] = useState<
+  	{ brand: string; products: any[] }[]
+  >([]);
 	const [currentSlide, setCurrentSlide] = useState(0);
 	const [isTransitioning, setIsTransitioning] = useState(true);
 	const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,8 +65,11 @@ export default function Home() {
 	const startIndex = slides.length + currentSlide;
 
 	useEffect(() => {
-		getProducts().then(setProducts);
-	}, []);
+  	setLoading(true);
+  	getProductsByBrands()
+  		.then(setBrandSections)
+  		.finally(() => setLoading(false));
+  }, []);
 
 	const startAutoPlay = () => {
 		if (autoPlayRef.current) clearInterval(autoPlayRef.current);
@@ -133,6 +153,7 @@ export default function Home() {
       <Header />
 
       {/* Слайдшоу */}
+      <Reveal>
       <section
         className="w-full bg-white overflow-hidden relative"
         onTouchStart={handleTouchStart}
@@ -256,114 +277,149 @@ export default function Home() {
           ))}
         </div>
       </section>
+        </Reveal>
 
       {/* Товары */}
-      <section className="py-12 md:py-16 bg-[#fafafa]">
-        <div className="max-w-[1440px] mx-auto px-4 md:px-16">
-          <h2
-            className="text-3xl md:text-5xl font-extrabold uppercase mb-8 md:mb-10 text-center tracking-wider"
-            style={{ fontFamily: "Montserrat, sans-serif" }}>
-            ПОПУЛЯРНЫЕ ТОВАРЫ
-          </h2>
-          {products.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <p className="text-lg font-bold uppercase">
-                Товары скоро появятся
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {products.map((product: any) => (
-                <Link
-                  key={product.id}
-                  href={`/product/${product.id}`}
-                  className="group cursor-pointer">
-                  <div className="aspect-[4/5] bg-gray-50 mb-3 md:mb-4 overflow-hidden relative rounded-2xl border border-gray-100">
-                    {product.images?.[0] ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700"
-                      />
-                    ) : product.image ? (
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-700"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                        {product.name}
-                      </div>
-                    )}
-                  </div>
-                  <h3
-                    className="text-sm md:text-base font-bold uppercase leading-tight group-hover:text-primary transition-colors line-clamp-2"
-                    style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    {product.name}
-                  </h3>
-                  <p className="text-sm font-bold mt-1">
-                    от {product.price?.toLocaleString()} RUB
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+      <Reveal>
+      <section className="py-12 md:py-16 bg-white">
+	      <div className="max-w-[1440px] mx-auto px-4 md:px-16">
+	      	<h2
+	      		className="text-3xl md:text-5xl font-extrabold uppercase mb-12 md:mb-16 text-center tracking-wider"
+	      		style={{ fontFamily: "Montserrat, sans-serif" }}>
+	      		ПОПУЛЯРНЫЕ ТОВАРЫ
+	      	</h2>
+	      	{loading ? (
+	      		<div className="flex items-center justify-center py-32">
+	      			<div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full" />
+	      		</div>
+	      	) : brandSections.length === 0 ? (
+	      		<div className="text-center py-20 text-gray-400">
+	      			<p className="text-lg font-bold uppercase">Товары скоро появятся</p>
+	      		</div>
+	      	) : (
+      			brandSections.map((section, idx) => (
+      				<div
+      					key={section.brand}
+      					className={idx > 0 ? "mt-16 md:mt-20" : ""}>
+      					<h3
+      						className="text-2xl md:text-4xl font-extrabold uppercase mb-8 md:mb-10 text-center tracking-wider"
+      						style={{ fontFamily: "Montserrat, sans-serif" }}>
+      						{section.brand}
+      					</h3>
+      					<div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      						{section.products.map((product: any) => {
+      							const minPrice = product.skus?.length
+      								? Math.min(
+      										...product.skus.map((s: any) => s.price),
+      									)
+      								: product.price || 0;
+                      
+      							return (
+      								<Link
+      									key={product.id}
+      									href={`/product/${product.id}`}
+      									className="group cursor-pointer block">
+      									<div className="aspect-square bg-white overflow-hidden border border-gray-100 rounded-xl flex items-center justify-center p-4 group-hover:border-gray-300 transition">
+      										{product.images?.[0] ? (
+      											<img
+      												src={product.images[0]}
+      												alt={product.name}
+      												className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-500"
+      											/>
+      										) : (
+      											<div className="text-gray-400 text-xs text-center">
+      												{product.name}
+      											</div>
+      										)}
+      									</div>
+      									<div className="mt-3">
+      										<p className="text-[11px] font-bold uppercase text-gray-800 group-hover:text-primary transition truncate">
+      											{product.name}
+      										</p>
+      										<p className="text-[11px] text-gray-400 font-bold mt-0.5">
+      											от {minPrice.toLocaleString()} RUB
+      										</p>
+      									</div>
+      								</Link>
+      							);
+      						})}
+      					</div>
+      				</div>
+      			))
+      		)}
+      	</div>
+        </section>
+      </Reveal>
 
       {/* Категории */}
-      <section className="py-12 md:py-16 border-t border-gray-100">
+      <Reveal>
+      <section className="py-12 md:py-16">
         <div className="max-w-[1440px] mx-auto px-4 md:px-16">
           <h2
             className="text-3xl md:text-5xl font-extrabold uppercase mb-8 md:mb-10 text-center tracking-wider"
             style={{ fontFamily: "Montserrat, sans-serif" }}>
             КАТЕГОРИИ
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            {[
-              {
-                name: "ОБУВЬ",
-                type: "Sneakers",
-                img: "/categories/sneakers.jpg",
-                color: "from-blue-900/60",
-              },
-              {
-                name: "ОДЕЖДА",
-                type: "Clothing",
-                img: "/categories/clothing.webp",
-                color: "from-green-900/60",
-              },
-              {
-                name: "АКСЕССУАРЫ",
-                type: "Accessories",
-                img: "/categories/accessories.jpg",
-                color: "from-yellow-900/60",
-              },
-            ].map((cat) => (
-              <Link
-                key={cat.name}
-                href={`/catalog?type=${cat.type}`}
-                className="group relative aspect-[3/4] overflow-hidden rounded-2xl bg-gray-200">
-                <div
-                  className={`absolute inset-0 bg-gradient-to-t ${cat.color} to-transparent z-10`}
-                />
-                <div
-                  className="w-full h-full bg-cover bg-center"
-                  style={{ backgroundImage: `url(${cat.img})` }}
-                />
-                <div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 z-20">
-                  <h3
-                    className="text-xl md:text-2xl font-extrabold text-white uppercase tracking-wider"
-                    style={{ fontFamily: "Montserrat, sans-serif" }}>
-                    {cat.name}
-                  </h3>
-                </div>
-              </Link>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 md:gap-6">
+          	{[
+          		{
+          			name: "ОБУВЬ",
+          			type: "Sneakers",
+          			img: "/categories/sneakers.jpg",
+          			color: "from-blue-900/60",
+          		},
+          		{
+          			name: "УГГИ",
+          			type: "Uggs",
+          			img: "/uggi.jpg",
+          			color: "from-amber-900/60",
+          		},
+          		{
+          			name: "ОДЕЖДА",
+          			type: "Clothing",
+          			img: "/categories/clothing.webp",
+          			color: "from-green-900/60",
+          		},
+          		{
+          			name: "АКСЕССУАРЫ",
+          			type: "Accessories",
+          			img: "/categories/accessories.jpg",
+          			color: "from-yellow-900/60",
+          		},
+          		{
+          			name: "СУМКИ",
+          			type: "Bags",
+          			img: "/bag.jpg",
+          			color: "from-pink-900/60",
+          		},
+          	].map((cat, idx) => (
+          		<Link
+          			key={cat.name}
+          			href={`/catalog?type=${cat.type}`}
+          			className={`group relative aspect-[3/4] overflow-hidden rounded-2xl bg-gray-200 md:col-span-2 ${
+          				idx === 3 ? "md:col-start-2" : ""
+          			}`}>
+          			<div
+          				className={`absolute inset-0 bg-gradient-to-t ${cat.color} to-transparent z-10`}
+          			/>
+          			<div
+          				className="w-full h-full bg-cover bg-center"
+          				style={{ backgroundImage: `url(${cat.img})` }}
+          			/>
+          			<div className="absolute bottom-6 left-6 md:bottom-8 md:left-8 z-20">
+          				<h3
+          					className="text-xl md:text-2xl font-extrabold text-white uppercase tracking-wider"
+          					style={{ fontFamily: "Montserrat, sans-serif" }}>
+          					{cat.name}
+          				</h3>
+          			</div>
+          		</Link>
+          	))}
           </div>
         </div>
-      </section>
+        </section>
+        </Reveal>
+        
 
       <Footer />
     </main>

@@ -101,6 +101,23 @@ function AdminClient() {
         : s === "cancelled"
           ? "bg-red-50 text-red-500"
           : "bg-yellow-50 text-yellow-600";
+  
+  const handleDelete = async (productId: string, productName: string) => {
+  	if (
+  		!confirm(
+  			`Удалить товар "${productName}"? Это действие нельзя отменить.`,
+  		)
+  	)
+  		return;
+  
+  	try {
+  		await api.delete(`/admin/products/${productId}`);
+  		setProducts((prev) => prev.filter((p: any) => p.id !== productId));
+  		alert("Товар удалён");
+  	} catch (err: any) {
+  		alert(err.response?.data?.error || "Ошибка удаления");
+  	}
+  };
 
   if (user?.role !== "admin") return null;
 
@@ -339,11 +356,18 @@ function AdminClient() {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            <button
-                              onClick={() => startEdit(p)}
-                              className="text-primary font-bold text-xs hover:underline cursor-pointer">
-                              Изменить
-                            </button>
+                            <div className="flex gap-2">
+                            	<button
+                            		onClick={() => startEdit(p)}
+                            		className="text-xs font-bold text-primary hover:underline cursor-pointer">
+                            		Изменить
+                            	</button>
+                            	<button
+                            		onClick={() => handleDelete(p.id, p.name)}
+                            		className="text-xs font-bold text-red-500 hover:underline cursor-pointer">
+                            		Удалить
+                            	</button>
+                            </div>
                           </td>
                         </tr>
                       ))}

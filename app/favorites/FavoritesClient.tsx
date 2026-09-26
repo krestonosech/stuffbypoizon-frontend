@@ -18,6 +18,13 @@ export default function FavoritesClient() {
   const [selected, setSelected] = useState<string[]>([]);
   const router = useRouter();
 
+  const showToast = (message: string) => {
+    setToast(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2500);
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const toggleSelect = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
@@ -25,48 +32,53 @@ export default function FavoritesClient() {
   };
 
   const toggleAll = () => {
-    if (selected.length === favorites.length) setSelected([]);
-    else setSelected(favorites.map((f) => f.id));
+  	if (selected.length === favorites.length && favorites.length > 0) {
+  		setSelected([]);
+  	} else {
+  		setSelected(favorites.map((f) => f.favoriteId));
+  	}
   };
 
   const addSelectedToCart = async () => {
-    if (!user) {
-      router.push("/login?redirect=/favorites");
-      return;
-    }
-    let count = 0;
-    for (const item of favorites) {
-      if (selected.includes(item.id) && item.skus?.[0]) {
-        try {
-          await api.post("/cart", { skuId: item.skus[0].id, quantity: 1 });
-          count++;
-        } catch {}
-      }
-    }
-    window.dispatchEvent(new Event("cartUpdated"));
-    showToast(`Добавлено: ${count} товаров`);
+  	if (!user) {
+  		router.push("/login?redirect=/favorites");
+  		return;
+  	}
+  	let count = 0;
+  	for (const item of favorites) {
+  		if (!selected.includes(item.favoriteId)) continue;
+  		const sku = item.skus?.find((s: any) => s.size === item.size);
+  		if (sku) {
+  			try {
+  				await api.post("/cart", { skuId: sku.id, quantity: 1 });
+  				count++;
+  			} catch {}
+  		}
+  	}
+  	window.dispatchEvent(new Event("cartUpdated"));
+  	showToast(`Добавлено: ${count} товаров`);
+  };
+
+  const loadFavorites = async () => {
+  	if (!user) {
+  		setFavorites([]);
+  		setLoading(false);
+  		return;
+  	}
+  	try {
+  		const { data } = await api.get("/favorites");
+  		setFavorites(data.data || []);
+  	} catch {
+  		setFavorites([]);
+  	} finally {
+  		setLoading(false);
+  	}
   };
 
   useEffect(() => {
-    loadFavorites();
-    if (user) fetchCartSkuIds();
+  	loadFavorites();
+  	if (user) fetchCartSkuIds();
   }, [user]);
-
-  const loadFavorites = () => {
-    const saved = localStorage.getItem("favorites");
-    if (saved) {
-      try {
-        setFavorites(JSON.parse(saved));
-      } catch {}
-    }
-    setLoading(false);
-  };
-
-  const saveFavorites = (items: any[]) => {
-    setFavorites(items);
-    localStorage.setItem("favorites", JSON.stringify(items));
-    window.dispatchEvent(new Event("favoritesUpdated"));
-  };
 
   const fetchCartSkuIds = async () => {
     try {
@@ -77,9 +89,16 @@ export default function FavoritesClient() {
     }
   };
 
-  const removeItem = (id: string) => {
-    saveFavorites(favorites.filter((f) => f.id !== id));
-    showToast("Удалено из избранного");
+  const removeItem = async (productId: string, size: string, favoriteId: string) => {
+  	try {
+  		await api.delete(`/favorites?productId=${productId}&size=${size}`);
+  		setFavorites((prev) =>
+  			prev.filter((f) => !(f.id === productId && f.size === size)),
+  		);
+  		setSelected((prev) => prev.filter((id) => id !== favoriteId));
+  		window.dispatchEvent(new Event("favoritesUpdated"));
+  		showToast("Удалено из избранного");
+  	} catch {}
   };
 
   const addAllToCart = async () => {
@@ -89,48 +108,34 @@ export default function FavoritesClient() {
     }
     let count = 0;
     for (const item of favorites) {
-      try {
-        if (item.skus?.[0]) {
-          await api.post("/cart", { skuId: item.skus[0].id, quantity: 1 });
+      const sku = item.skus?.find((s: any) => s.size === item.size);
+      if (sku) {
+        try {
+          await api.post("/cart", { skuId: sku.id, quantity: 1 });
           count++;
-        }
-      } catch {}
+        } catch { }
+      }
     }
     window.dispatchEvent(new Event("cartUpdated"));
-    fetchCartSkuIds();
     showToast(`Добавлено: ${count} товаров`);
   };
 
-  const clearAll = () => {
-    saveFavorites([]);
-    showToast("Список избранного очищен");
-  };
-
-  const showToast = (message: string) => {
-    setToast(message);
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 2500);
-    setTimeout(() => setToast(null), 3000);
+  const clearAll = async () => {
+  	try {
+  		await api.delete("/favorites?all=true");
+  		setFavorites([]);
+  		setSelected([]);
+  		window.dispatchEvent(new Event("favoritesUpdated"));
+  		showToast("Список избранного очищен");
+  	} catch {}
   };
 
   const allInCart =
-    favorites.length > 0 &&
-    favorites.every((fav) => {
-      const skuId = fav.skus?.[0]?.id;
-      return skuId && cartSkuIds.includes(skuId);
-    });
-
-  if (loading) {
-    return (
-      <main className="pt-16 min-h-screen flex flex-col">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
-        </div>
-        <Footer />
-      </main>
-    );
-  }
+	  favorites.length > 0 &&
+	  favorites.every((fav) => {
+	  	const sku = fav.skus?.find((s: any) => s.size === fav.size);
+	  	return sku && cartSkuIds.includes(sku.id);
+	  });
 
   return (
     <main className="pt-16 min-h-screen flex flex-col">
@@ -159,8 +164,8 @@ export default function FavoritesClient() {
                 <span className="text-primary">Избранное</span>
               </div>
             </div>
-            {favorites.length !== 0 && (
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+            {!loading && favorites.length !== 0 && (
+	            <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
                 <label className="flex items-center gap-2 text-xs font-bold text-gray-400 cursor-pointer">
                   <input
                     type="checkbox"
@@ -200,8 +205,12 @@ export default function FavoritesClient() {
             )}
           </header>
 
-          {favorites.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
+          {loading ? (
+          	<div className="flex items-center justify-center py-32">
+          		<div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full" />
+          	</div>
+          ) : favorites.length === 0 ? (
+          	<div className="flex flex-col items-center justify-center py-20 text-center">
               <span className="text-6xl text-gray-200 mb-6">♡</span>
               <h2
                 className="text-xl font-extrabold uppercase mb-4"
@@ -221,7 +230,7 @@ export default function FavoritesClient() {
           ) : (
             <div className="space-y-4">
               {favorites.map((product: any) => (
-                <div key={product.id} className="flex gap-4 md:gap-6">
+                <div key={product.favoriteId} className="flex gap-4 md:gap-6">
                   <Link
                     href={`/product/${product.id}`}
                     className="w-24 h-24 md:w-32 md:h-32 bg-gray-50 rounded-xl flex-shrink-0 overflow-hidden border border-gray-100 flex items-center justify-center cursor-pointer">
@@ -248,8 +257,8 @@ export default function FavoritesClient() {
                       <div className="flex gap-4 md:gap-6">
                         <input
                           type="checkbox"
-                          checked={selected.includes(product.id)}
-                          onChange={() => toggleSelect(product.id)}
+                          checked={selected.includes(product.favoriteId)}
+                          onChange={() => toggleSelect(product.favoriteId)}
                           className="w-4 h-4 text-primary focus:ring-primary border-gray-300 cursor-pointer mt-1"
                         />
                         <Link
@@ -259,25 +268,29 @@ export default function FavoritesClient() {
                           {product.name}
                         </Link>
                         <button
-                          onClick={() => removeItem(product.id)}
+                          onClick={() => removeItem(product.id, product.size, product.favoriteId)}
                           className="text-gray-400 hover:text-red-500 transition cursor-pointer text-lg">
                           &times;
                         </button>
                       </div>
                       <p className="text-[10px] font-bold text-gray-400 mt-1">
-                        {product.type || product.gender || "UNISEX"}
+                      	{product.type || product.gender || "UNISEX"}
+                      	{product.size && ` · РАЗМЕР: ${product.size}`}
                       </p>
                     </div>
                     <div className="flex justify-between items-end">
                       <span className="text-sm font-bold">
-                        от{" "}
-                        {product.price?.toLocaleString?.() ||
-                          (product.skus?.length > 0
-                            ? Math.min(
-                                ...product.skus.map((s: any) => s.price),
-                              ).toLocaleString()
-                            : "—")}{" "}
-                        RUB
+                      	{(() => {
+                      		if (product.size && product.skus?.length) {
+                      			const sku = product.skus.find((s: any) => s.size === product.size);
+                      			if (sku) return `${sku.price.toLocaleString()} RUB`;
+                      		}
+                      		if (product.skus?.length) {
+                      			return `от ${Math.min(...product.skus.map((s: any) => s.price)).toLocaleString()} RUB`;
+                      		}
+                      		if (product.price) return `${product.price.toLocaleString()} RUB`;
+                      		return "—";
+                      	})()}
                       </span>
                     </div>
                   </div>

@@ -18,7 +18,7 @@
 
 body {
 	font-family: var(--font-family-inter);
-	background-color: #fafafa;
+	background-color: white;
 	color: #1a1c1c;
 	overflow-x: hidden;
 }
@@ -54,5 +54,31 @@ main > .flex-1 {
 	}
 	to {
 		transform: translateX(0);
+	}
+}
+
+.reveal {
+	opacity: 0;
+	transform: translateY(40px);
+	filter: blur(10px);
+	transition:
+		opacity 0.8s ease-out,
+		transform 0.8s ease-out,
+		filter 0.8s ease-out;
+	will-change: opacity, transform, filter;
+}
+
+.reveal.reveal-visible {
+	opacity: 1;
+	transform: translateY(0);
+	filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.reveal {
+		opacity: 1;
+		transform: none;
+		filter: none;
+		transition: none;
 	}
 }

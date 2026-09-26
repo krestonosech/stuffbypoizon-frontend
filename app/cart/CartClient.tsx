@@ -424,18 +424,6 @@ export default function CartClient() {
                     </button>
                   </div>
                 ))}
-                <div className="mt-8 bg-gray-50 p-5 rounded-xl flex gap-3 items-start border-l-4 border-primary">
-                  <span className="text-primary text-lg">!</span>
-                  <div>
-                    <p className="text-xs font-bold uppercase mb-1">
-                      Оплата на сайте временно недоступна
-                    </p>
-                    <p className="text-[12px] text-gray-500 leading-relaxed">
-                      Оплата производится при получении или прямым переводом
-                      после подтверждения заказа менеджером.
-                    </p>
-                  </div>
-                </div>
               </section>
 
               <aside className="lg:col-span-5">

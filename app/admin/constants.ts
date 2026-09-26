@@ -110,15 +110,26 @@ export const SIZE_CHARTS: Record<
 
 export const getSizesByBrand = (brand: string): string[] => {
 	const b = brand.toLowerCase();
+	let sizes: string[];
+
 	if (b.includes("nike") || b.includes("jordan"))
-		return Object.keys(SIZE_CHARTS.nike);
-	if (b.includes("yeezy") || b.includes("adidas"))
-		return Object.keys(SIZE_CHARTS.adidas);
-	if (b.includes("new balance") || b.includes("nb"))
-		return Object.keys(SIZE_CHARTS.newbalance);
-	if (b.includes("on") || b.includes("on running"))
-		return Object.keys(SIZE_CHARTS.onrunning);
-	return Object.keys(SIZE_CHARTS.nike); // default
+		sizes = Object.keys(SIZE_CHARTS.nike);
+	else if (b.includes("yeezy") || b.includes("adidas"))
+		sizes = Object.keys(SIZE_CHARTS.adidas);
+	else if (b.includes("new balance") || b.includes("nb"))
+		sizes = Object.keys(SIZE_CHARTS.newbalance);
+	else if (b.includes("on") || b.includes("on running"))
+		sizes = Object.keys(SIZE_CHARTS.onrunning);
+	else sizes = Object.keys(SIZE_CHARTS.nike);
+
+	return [...sizes].sort((a, b) => {
+		const numA = parseFloat(a.split(" ")[0].replace(",", "."));
+		const numB = parseFloat(b.split(" ")[0].replace(",", "."));
+		if (numA !== numB) return numA - numB;
+		const fracA = a.includes(" ") ? parseFloat(a.split(" ")[1].replace("/", ".")) : 0;
+		const fracB = b.includes(" ") ? parseFloat(b.split(" ")[1].replace("/", ".")) : 0;
+		return fracA - fracB;
+	});
 };
 
 export const SNEAKER_SIZES = [

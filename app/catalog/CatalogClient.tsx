@@ -8,11 +8,12 @@ import Header from "../../components/layout/Header";
 import Footer from "../../components/layout/Footer";
 import api from "../../lib/api";
 import FiltersContent from "./FiltersContent";
+import { useAuth } from "../../lib/auth-context";
 
 function CatalogContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-
+  const { user } = useAuth();
   const [products, setProducts] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -36,9 +37,10 @@ function CatalogContent() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [sortOpen, setSortOpen] = useState(false);
-
+  const [loading, setLoading] = useState(true);
   const [favModalProduct, setFavModalProduct] = useState<any>(null);
   const [favSize, setFavSize] = useState("");
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
 
   const [appliedFilters, setAppliedFilters] = useState({
     type: "",
@@ -57,6 +59,7 @@ function CatalogContent() {
   });
 
   const fetchProductsWithFilters = async (filters = appliedFilters) => {
+    setLoading(true);
     try {
       const params = new URLSearchParams();
       params.set("page", page.toString());
@@ -85,7 +88,9 @@ function CatalogContent() {
       setTotal(data.pagination?.total || 0);
     } catch {
       setProducts([]);
-    }
+    } finally {
+	  	setLoading(false);
+	  }
   };
 
   useEffect(() => {
@@ -154,13 +159,16 @@ function CatalogContent() {
     setAppliedFilters(newFilters);
     fetchProductsWithFilters(newFilters);
 
-    const savedFav = localStorage.getItem("favorites");
-    if (savedFav) {
-      try {
-        setFavorites(JSON.parse(savedFav).map((f: any) => f.id));
-      } catch {}
+    if (user) {
+    	import("../../lib/favorites").then(({ fetchFavorites }) => {
+    		fetchFavorites().then((favs) =>
+    			setFavoriteIds(favs.map((f) => f.id)),
+    		);
+    	});
+    } else {
+	    setFavoriteIds([]);
     }
-  }, [searchParams, page, sortBy, order]);
+  }, [searchParams, page, sortBy, order, user]);
 
   const applyFilters = (
     brand: string,
@@ -248,32 +256,18 @@ function CatalogContent() {
     router.push("/catalog", { scroll: false });
   };
 
-  const addToFavoritesWithSize = () => {
-    if (!favModalProduct || !favSize) return;
-    const saved = localStorage.getItem("favorites");
-    let favs: any[] = saved ? JSON.parse(saved) : [];
-    const exists = favs.find(
-      (f: any) => f.id === favModalProduct.id && f.size === favSize,
-    );
-    if (!exists) {
-      favs.push({
-        id: favModalProduct.id,
-        name: favModalProduct.name,
-        price: favModalProduct.price,
-        images: favModalProduct.images,
-        image: favModalProduct.image,
-        type: favModalProduct.type,
-        gender: favModalProduct.gender,
-        skus: favModalProduct.skus,
-        itemNumber: favModalProduct.itemNumber,
-        size: favSize,
-      });
-      localStorage.setItem("favorites", JSON.stringify(favs));
-      window.dispatchEvent(new Event("favoritesUpdated"));
-      setFavorites((prev) => [...prev, favModalProduct.id]);
-    }
-    setFavModalProduct(null);
-    setFavSize("");
+  const addToFavoritesWithSize = async () => {
+  	if (!favModalProduct || !favSize) return;
+  	if (!user) {
+  		setFavModalProduct(null);
+  		setFavSize("");
+  		return;
+  	}
+  	const { addFavorite } = await import("../../lib/favorites");
+  	await addFavorite(favModalProduct.id, favSize);
+  	setFavoriteIds((prev) => [...prev, favModalProduct.id]);
+  	setFavModalProduct(null);
+  	setFavSize("");
   };
 
   const sortOptions = [
@@ -415,77 +409,79 @@ function CatalogContent() {
             </div>
 
             <section className="flex-1">
-              {products.length === 0 ? (
-                <div className="text-center py-20 text-gray-400">
-                  <p className="text-lg font-bold uppercase">
-                    Товары не найдены
-                  </p>
-                  <p className="text-sm mt-1">
-                    Попробуйте изменить параметры поиска
-                  </p>
-                </div>
-              ) : (
+	            {loading ? (
+	            	<div className="flex items-center justify-center py-32">
+	            		<div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full" />
+	            	</div>
+	            ) : products.length === 0 ? (
+	            	<div className="text-center py-20 text-gray-400">
+	            		<p className="text-lg font-bold uppercase">Товары не найдены</p>
+	            		<p className="text-sm mt-1">Попробуйте изменить параметры поиска</p>
+	            	</div>
+	            ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                  {products.map((product: any) => (
-                    <div key={product.id} className="group relative">
-                      <Link
-                        href={`/product/${product.id}`}
-                        className="block cursor-pointer">
-                        <div className="aspect-square bg-gray-50 overflow-hidden relative flex items-center justify-center p-4 rounded-lg">
-                          {product.images?.[0] ? (
-                            <img
-                              src={product.images[0]}
-                              alt={product.name}
-                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : product.image ? (
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="text-gray-400 text-xs text-center">
-                              {product.name}
-                            </div>
-                          )}
-                        </div>
-                        <div className="mt-3 space-y-0.5">
-                          <h3
-                            className="text-sm font-bold uppercase leading-tight truncate"
-                            style={{ fontFamily: "Montserrat, sans-serif" }}>
-                            {product.name}
-                          </h3>
-                          <p className="text-sm font-bold">
-                            {product.price.toLocaleString()} RUB
-                          </p>
-                        </div>
-                      </Link>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setFavModalProduct(product);
-                          setFavSize("");
-                        }}
-                        className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white transition z-10 cursor-pointer">
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill={
-                            favorites.includes(product.id) ? "#ef4444" : "none"
-                          }
-                          stroke={
-                            favorites.includes(product.id)
-                              ? "#ef4444"
-                              : "#9ca3af"
-                          }
-                          strokeWidth="2">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
+                	{products.map((product: any) => {
+                		const minPrice = product.skus?.length
+                			? Math.min(...product.skus.map((s: any) => s.price))
+                			: product.price || 0;
+                  
+                		return (
+                			<div key={product.id} className="group relative">
+                				<Link
+                					href={`/product/${product.id}`}
+                					className="block cursor-pointer">
+                					<div className="aspect-square bg-white overflow-hidden border border-gray-100 rounded-xl flex items-center justify-center p-4 group-hover:border-gray-300 transition">
+                						{product.images?.[0] ? (
+                							<img
+                								src={product.images[0]}
+                								alt={product.name}
+                								className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-500"
+                							/>
+                						) : product.image ? (
+                							<img
+                								src={product.image}
+                								alt={product.name}
+                								className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-transform duration-500"
+                							/>
+                						) : (
+                							<div className="text-gray-400 text-xs text-center">
+                								{product.name}
+                							</div>
+                						)}
+                					</div>
+                					<div className="mt-3">
+                						<p className="text-[11px] font-bold uppercase text-gray-800 group-hover:text-primary transition truncate">
+                							{product.name}
+                						</p>
+                						<p className="text-[11px] text-gray-400 font-bold mt-0.5">
+                							от {minPrice.toLocaleString()} RUB
+                						</p>
+                					</div>
+                				</Link>
+                				<button
+                					onClick={(e) => {
+                            e.preventDefault();
+                            if (!user) {
+		                        	window.location.href = "/login?redirect=/catalog";
+		                        	return;
+		                        }
+                						setFavModalProduct(product);
+                						setFavSize("");
+                					}}
+                					className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 hover:bg-white transition z-10 cursor-pointer">
+                					<svg
+	                          width="18"
+	                          height="18"
+	                          viewBox="0 0 24 24"
+	                          fill={favoriteIds.includes(product.id) ? "#ef4444" : "none"}
+	                          stroke={favoriteIds.includes(product.id) ? "#ef4444" : "#9ca3af"}
+	                          strokeWidth="2">
+                						<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                					</svg>
+                				</button>
+                			</div>
+                		);
+                	})}
                 </div>
               )}
               {totalPages > 1 && (

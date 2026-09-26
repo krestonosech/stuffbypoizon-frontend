@@ -195,14 +195,17 @@ export default function Header() {
 	};
 
 	useEffect(() => {
-		if (user) fetchCartCount();
-		else setCartCount(0);
-	}, [user]);
+	  updateFavCount();
+	  window.addEventListener("favoritesUpdated", updateFavCount);
+	  return () => window.removeEventListener("favoritesUpdated", updateFavCount);
+  }, [user]);
+  
 	useEffect(() => {
 		updateFavCount();
 		window.addEventListener("favoritesUpdated", updateFavCount);
 		return () => window.removeEventListener("favoritesUpdated", updateFavCount);
-	}, []);
+  }, []);
+  
 	useEffect(() => {
 		const onCartUpdate = () => fetchCartCount();
 		window.addEventListener("cartUpdated", onCartUpdate);
@@ -216,17 +219,20 @@ export default function Header() {
 		} catch {
 			setCartCount(0);
 		}
-	};
-	const updateFavCount = () => {
-		const saved = localStorage.getItem("favorites");
-		if (saved) {
-			try {
-				setFavCount(JSON.parse(saved).length);
-			} catch {
-				setFavCount(0);
-			}
-		} else setFavCount(0);
-	};
+  };
+
+  const updateFavCount = async () => {
+  	if (!user) {
+  		setFavCount(0);
+  		return;
+  	}
+  	try {
+  		const { data } = await api.get("/favorites");
+  		setFavCount(data.data?.length || 0);
+  	} catch {
+  		setFavCount(0);
+  	}
+  };
 
 	const handleSearch = (e: React.FormEvent) => {
 		e.preventDefault();
